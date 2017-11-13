@@ -15,3 +15,11 @@ type CharacterNotFound struct {
 func (e CharacterNotFound) Error() string {
 	return e.S
 }
+
+type ParametersNotProvided struct {
+	S string
+}
+
+func (e ParametersNotProvided) Error() string {
+	return e.S
+}

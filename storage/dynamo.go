@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	// "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/salmondx/wow-twitch-extension/model"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -30,7 +30,7 @@ type DynamoRepository struct {
 
 func New() (*DynamoRepository, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String("us-east-1"),
+		Region: aws.String("us-east-1"),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("Can not create dynamodb client: %v", err)

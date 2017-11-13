@@ -63,6 +63,7 @@ func (cache *CacheClient) AddCharacters(streamerID string, characterInfos []*mod
 	if err != nil {
 		return fmt.Errorf("Can not serialize characters for %s. Reason: %v", streamerID, err)
 	}
+	conn.Send("MULTI")
 	conn.Send("SET", streamerID, bytes)
 	conn.Send("EXPIRE", streamerID, expirationTimeout)
 	_, err = conn.Do("EXEC")
@@ -107,6 +108,7 @@ func (cache *CacheClient) AddProfile(streamerID string, character *model.Charact
 	if err != nil {
 		return fmt.Errorf("Can't serialize profile for %s. Reason: %v", streamerID, err)
 	}
+	conn.Send("MULTI")
 	conn.Send("SET", key, data)
 	conn.Send("EXPIRE", key, expirationTimeout)
 	_, err = conn.Do("EXEC")
