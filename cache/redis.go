@@ -53,9 +53,6 @@ func (cache *CacheClient) AddCharacters(streamerID string, characterInfos []*mod
 	if streamerID == "" {
 		return errors.New("StreamerID can not be empty")
 	}
-	if characterInfos == nil || len(characterInfos) == 0 {
-		return errors.New("Can not set empty characters list")
-	}
 	conn := cache.pool.Get()
 	defer conn.Close()
 
@@ -122,8 +119,6 @@ func (cache *CacheClient) Update(streamerID string, character *model.Character) 
 	if streamerID == "" || character == nil {
 		return errors.New("StreamerID or character can not be null or empty")
 	}
-	// conn := cache.pool.Get()
-	// defer conn.Close()
 	characters, err := cache.List(streamerID)
 	if err == nil {
 		charInfo := model.CharacterInfo{
@@ -141,6 +136,20 @@ func (cache *CacheClient) Update(streamerID string, character *model.Character) 
 	err = cache.AddProfile(streamerID, character)
 	if err != nil {
 		log.Printf("Can not update profile for %s. Reason: %v", streamerID, err)
+	}
+	return nil
+}
+
+func (cache *CacheClient) ClearList(streamerID string) error {
+	if streamerID == "" {
+		return errors.New("StreamerID can not be empty")
+	}
+	conn := cache.pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("DEL", streamerID)
+	if err != nil {
+		return fmt.Errorf("Can not delete %s list from cache. Reason: %v", streamerID, err)
 	}
 	return nil
 }

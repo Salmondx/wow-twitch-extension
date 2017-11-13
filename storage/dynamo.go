@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	// "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/salmondx/wow-twitch-extension/model"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"

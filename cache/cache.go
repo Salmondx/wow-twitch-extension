@@ -9,6 +9,7 @@ type Cache interface {
 	GetProfile(streamerID, realm, name string) (*model.Character, error)
 	AddProfile(streamerID string, character *model.Character) error
 	Update(streamerID string, character *model.Character) error
+	ClearList(streamerID string) error
 }
 
 func createProfileKey(streamerID, realm, name string) string {

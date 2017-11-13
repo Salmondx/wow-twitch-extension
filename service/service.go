@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/salmondx/wow-twitch-extension/bnet"
@@ -14,9 +15,9 @@ import (
 // CharacterService allows to view currently added WoW characters,
 // add new characters, delete character and get a detailed info of selected character
 type CharacterService interface {
-	// Get short characters info
+	// Get short characters info. Returns empty slice if no characters
 	List(streamerID string) ([]*model.CharacterInfo, error)
-	// Add new character to storage
+	// Add new character to storage. If character exists with such realm - name pair, error is thrown
 	Add(streamerID, realm, name string) error
 	// Delete character from storage
 	Delete(streamerID, realm, name string) error
@@ -45,12 +46,19 @@ func (s *CachableCharacterService) List(streamerID string) ([]*model.CharacterIn
 		return nil, errors.New("StreamerID can not be empty")
 	}
 	characters, err := s.cache.List(streamerID)
-	if err == nil {
+	if err != nil {
 		log.Printf("[WARN] Can't retrive characters list from cache: %s. %v", streamerID, err)
 		characters, err = s.storage.List(streamerID)
 		if err != nil {
 			return nil, err
 		}
+		err = s.cache.AddCharacters(streamerID, characters)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+		}
+	}
+	if characters == nil {
+		characters = make([]*model.CharacterInfo, 0)
 	}
 	return characters, nil
 }
@@ -70,6 +78,20 @@ func (s *CachableCharacterService) Add(streamerID, realm, name string) error {
 		Name:     profile.Name,
 		Realm:    profile.Realm,
 	}
+
+	// Trying to search characters for duplications
+	characters, err := s.List(streamerID)
+	if err != nil {
+		return err
+	}
+	if characters != nil {
+		for _, character := range characters {
+			if character.Realm == realm && character.Name == name {
+				return model.CharacterDuplicateError{fmt.Sprintf("Character with name %s on realm %s already exists", name, realm)}
+			}
+		}
+	}
+	// Add new character
 	err = s.storage.Add(streamerID, &charInfo)
 	if err != nil {
 		return err
@@ -87,6 +109,10 @@ func (s *CachableCharacterService) Delete(streamerID, realm, name string) error 
 		return errors.New("StreamerID, realm or name can not be empty")
 	}
 	err := s.storage.Delete(streamerID, realm, name)
+	if err != nil {
+		return err
+	}
+	err = s.cache.ClearList(streamerID)
 	if err != nil {
 		return err
 	}

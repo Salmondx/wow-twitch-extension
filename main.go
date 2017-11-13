@@ -26,9 +26,22 @@ type ErrorMessage struct {
 	Reason string
 }
 
+type HttpError struct {
+	S    string
+	Code int
+}
+
+func (e HttpError) Error() string {
+	return e.S
+}
+
 // Partial commit, rewrite using DI
 var (
-	clientSecret      = os.Getenv("CLIENT_SECRET")
+	clientSecret     = os.Getenv("CLIENT_SECRET")
+	badRequest       = HttpError{"Missing required parameters", http.StatusBadRequest}
+	methodNotAllowed = HttpError{"Method not allowed", http.StatusMethodNotAllowed}
+	wrongRole        = HttpError{"Only streamer is allowed to update characters list", http.StatusForbidden}
+
 	characterNotFound = ErrorMessage{100, "No character with such name and realm pair"}
 	characterLimit    = ErrorMessage{101, "Character limit reached. Delete character to add a new one"}
 	unknownError      = ErrorMessage{102, "Unknown error occurred"}
@@ -36,7 +49,8 @@ var (
 )
 
 func requestHandler(h func(string, RequestParameters, service.CharacterService) (interface{}, error),
-	characterService service.CharacterService) http.HandlerFunc {
+	characterService service.CharacterService,
+	successCode int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 
@@ -47,7 +61,7 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 		parameters := RequestParameters{
 			Realm:      realm,
 			Name:       name,
-			StreamerID: "123144",
+			StreamerID: "asd112314",
 			Role:       "streamer",
 		}
 		data, err := h(r.Method, parameters, characterService)
@@ -57,8 +71,10 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 			json.NewEncoder(w).Encode(errorMessage)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(data)
+		w.WriteHeader(successCode)
+		if data != nil {
+			json.NewEncoder(w).Encode(data)
+		}
 	}
 }
 
@@ -74,10 +90,15 @@ func handleError(err error) (ErrorMessage, int) {
 		log.Printf("[INFO] Character limit reached. %v", err)
 		errorMessage = characterLimit
 		status = http.StatusConflict
-	case model.ParametersNotProvided:
-		log.Printf("[INFO] Parameters were not provided. %v", err)
-		errorMessage = missingParameters
-		status = http.StatusBadRequest
+	case model.CharacterDuplicateError:
+		log.Printf("[INFO] Character duplicate: %v", err)
+		errorMessage = ErrorMessage{104, err.Error()}
+		status = http.StatusConflict
+	case HttpError:
+		httpErr := err.(HttpError)
+		log.Printf("[INFO] %v", httpErr.S)
+		errorMessage = ErrorMessage{105, httpErr.S}
+		status = httpErr.Code
 	default:
 		log.Printf("[ERROR] %v", err)
 		errorMessage = unknownError
@@ -87,8 +108,11 @@ func handleError(err error) (ErrorMessage, int) {
 }
 
 func profileHandler(method string, parameters RequestParameters, characterService service.CharacterService) (interface{}, error) {
+	if method != http.MethodGet {
+		return nil, methodNotAllowed
+	}
 	if parameters.StreamerID == "" || parameters.Name == "" || parameters.Realm == "" {
-		return nil, model.ParametersNotProvided{"Missing parameters"}
+		return nil, badRequest
 	}
 	log.Printf("[INFO] Profile for %v - %v", parameters.Realm, parameters.Name)
 	profile, err := characterService.Profile(parameters.StreamerID, parameters.Realm, parameters.Name)
@@ -98,14 +122,69 @@ func profileHandler(method string, parameters RequestParameters, characterServic
 	return profile, nil
 }
 
+func listHandler(method string, parameters RequestParameters, chacterService service.CharacterService) (interface{}, error) {
+	if method != http.MethodGet {
+		return nil, methodNotAllowed
+	}
+	if parameters.StreamerID == "" {
+		return nil, badRequest
+	}
+	log.Printf("[INFO] Character list for %s", parameters.StreamerID)
+	characters, err := chacterService.List(parameters.StreamerID)
+	if err != nil {
+		return nil, err
+	}
+	return characters, nil
+}
+
+func addCharacterHandler(method string, parameters RequestParameters, chacterService service.CharacterService) (interface{}, error) {
+	if method != http.MethodPost {
+		return nil, methodNotAllowed
+	}
+	if parameters.Role != "streamer" {
+		return nil, wrongRole
+	}
+	if parameters.StreamerID == "" || parameters.Realm == "" || parameters.Name == "" {
+		return nil, badRequest
+	}
+
+	log.Printf("[INFO] Adding character for %s: %s - %s", parameters.StreamerID, parameters.Realm, parameters.Name)
+	err := chacterService.Add(parameters.StreamerID, parameters.Realm, parameters.Name)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+func deleteCharacterHandler(method string, parameters RequestParameters, chacterService service.CharacterService) (interface{}, error) {
+	if method != http.MethodDelete {
+		return nil, methodNotAllowed
+	}
+	if parameters.Role != "streamer" {
+		return nil, wrongRole
+	}
+	if parameters.StreamerID == "" || parameters.Realm == "" || parameters.Name == "" {
+		return nil, badRequest
+	}
+
+	log.Printf("[INFO] Deleting character for %s: %s - %s", parameters.StreamerID, parameters.Realm, parameters.Name)
+	err := chacterService.Delete(parameters.StreamerID, parameters.Realm, parameters.Name)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
 func main() {
 	bnetClient := bnet.New(clientSecret)
 	redisCache := cache.New("localhost:6379")
 	dynamoStorage, _ := storage.New()
 	cacheService := service.New(redisCache, dynamoStorage, bnetClient)
 
-	// http.HandleFunc("/profile", handler)
-	http.HandleFunc("/profile", requestHandler(profileHandler, cacheService))
+	http.HandleFunc("/profile", requestHandler(profileHandler, cacheService, http.StatusOK))
+	http.HandleFunc("/list", requestHandler(listHandler, cacheService, http.StatusOK))
+	http.HandleFunc("/list/add", requestHandler(addCharacterHandler, cacheService, http.StatusCreated))
+	http.HandleFunc("/list/delete", requestHandler(deleteCharacterHandler, cacheService, http.StatusNoContent))
 	log.Println("Starting server")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))

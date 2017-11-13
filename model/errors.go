@@ -16,10 +16,10 @@ func (e CharacterNotFound) Error() string {
 	return e.S
 }
 
-type ParametersNotProvided struct {
+type CharacterDuplicateError struct {
 	S string
 }
 
-func (e ParametersNotProvided) Error() string {
+func (e CharacterDuplicateError) Error() string {
 	return e.S
 }
