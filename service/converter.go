@@ -11,7 +11,7 @@ import (
 
 const iconPlaceholderURL = "http://media.blizzard.com/wow/icons/36/%s.jpg"
 const charIconPlaceholderURL = "http://render-api-%s.worldofwarcraft.com/static-render/%s/%s"
-const wowheadURL = "http://www.wowhead.com/item=%d"
+const wowheadURL = "item=%d"
 
 // Convert converts profile from Battle.Net API to a required object
 func Convert(bnetProfile *bnet.CharacterProfile) *model.Character {
@@ -48,8 +48,12 @@ func convItem(bnetItem bnet.Item, itemType string) model.Item {
 	item.Name = bnetItem.Name
 	item.ItemLvl = bnetItem.ItemLevel
 	item.IconURL = fmt.Sprintf(iconPlaceholderURL, bnetItem.Icon)
-	item.DescriptionURL = fmt.Sprintf(wowheadURL, bnetItem.ID)
-	item.EnchantmentsURL = genEnchURL(bnetItem)
+	wowheadURL := fmt.Sprintf(wowheadURL, bnetItem.ID)
+	enchantmentsURL := genEnchURL(bnetItem)
+	if enchantmentsURL != "" {
+		wowheadURL = wowheadURL + "&" + enchantmentsURL
+	}
+	item.DescriptionURL = wowheadURL
 	return item
 }
 

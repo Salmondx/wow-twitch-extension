@@ -41,6 +41,10 @@ func TestConverter(t *testing.T) {
 		t.Errorf("Realm not equals")
 	}
 
+	if actual.Region != "eu" {
+		t.Errorf("Region not equals")
+	}
+
 	if actual.Class != "Paladin" {
 		t.Errorf("Class not equals")
 	}
@@ -75,10 +79,9 @@ func TestItemConverter(t *testing.T) {
 				Enchantment: 123567,
 			},
 		},
-			wowhead:      "http://www.wowhead.com/item=133767",
-			enchantments: "gems=1235:12445&ench=123567",
-			itemType:     "Neck",
-			icon:         "http://media.blizzard.com/wow/icons/36/inv_7_0raid_necklace_14a.jpg",
+			wowhead:  "item=133767&gems=1235:12445&ench=123567",
+			itemType: "Neck",
+			icon:     "http://media.blizzard.com/wow/icons/36/inv_7_0raid_necklace_14a.jpg",
 		},
 		{item: bnet.Item{
 			ID:        133767,
@@ -86,7 +89,7 @@ func TestItemConverter(t *testing.T) {
 			Name:      "t6 shoulders",
 			Icon:      "inv_7_0raid_necklace_14a",
 		},
-			wowhead:  "http://www.wowhead.com/item=133767",
+			wowhead:  "item=133767",
 			itemType: "Shoulders",
 			icon:     "http://media.blizzard.com/wow/icons/36/inv_7_0raid_necklace_14a.jpg",
 		},
@@ -108,9 +111,6 @@ func TestItemConverter(t *testing.T) {
 		}
 		if item.DescriptionURL != tt.wowhead {
 			t.Error("Wrong wowhead link")
-		}
-		if item.EnchantmentsURL != tt.enchantments {
-			t.Error("Wrong enchantments link")
 		}
 	}
 }
