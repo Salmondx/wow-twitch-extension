@@ -6,8 +6,8 @@ type Item struct {
 	Name            string
 	ItemLvl         int
 	IconURL         string
-	DescriptionURL  string `json:"omitempty"`
-	EnchantmentsURL string `json:"omitempty"`
+	DescriptionURL  string `json:",omitempty"`
+	EnchantmentsURL string `json:",omitempty"`
 }
 
 // Character is a full description of a WoW character with items
