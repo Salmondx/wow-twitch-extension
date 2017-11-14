@@ -10,7 +10,7 @@ import (
 )
 
 const iconPlaceholderURL = "http://media.blizzard.com/wow/icons/36/%s.jpg"
-const charIconPlaceholderURL = "http://render-api-eu.worldofwarcraft.com/static-render/%s/%s"
+const charIconPlaceholderURL = "http://render-api-%s.worldofwarcraft.com/static-render/%s/%s"
 const wowheadURL = "http://www.wowhead.com/item=%d"
 
 // Convert converts profile from Battle.Net API to a required object
@@ -18,8 +18,9 @@ func Convert(bnetProfile *bnet.CharacterProfile) *model.Character {
 	extensionProfile := model.Character{}
 	extensionProfile.Name = bnetProfile.Name
 	extensionProfile.Realm = bnetProfile.Realm
+	extensionProfile.Region = bnetProfile.Region
 	extensionProfile.Class = classByIndex(bnetProfile.Class)
-	extensionProfile.CharIcon = fmt.Sprintf(charIconPlaceholderURL, bnetProfile.Region, bnetProfile.Thumbnail)
+	extensionProfile.CharIcon = fmt.Sprintf(charIconPlaceholderURL, bnetProfile.Region, bnetProfile.Region, bnetProfile.Thumbnail)
 	extensionProfile.Items = getItems(bnetProfile.Items)
 	return &extensionProfile
 }

@@ -18,11 +18,11 @@ type CharacterService interface {
 	// Get short characters info. Returns empty slice if no characters
 	List(streamerID string) ([]*model.CharacterInfo, error)
 	// Add new character to storage. If character exists with such realm - name pair, error is thrown
-	Add(streamerID, realm, name string) error
+	Add(streamerID, region, realm, name string) error
 	// Delete character from storage
-	Delete(streamerID, realm, name string) error
+	Delete(streamerID, region, realm, name string) error
 	// Retrieve full character profile
-	Profile(streamerID, realm, name string) (*model.Character, error)
+	Profile(streamerID, region, realm, name string) (*model.Character, error)
 }
 
 // CachableCharacterService implements CharacterService interface
@@ -63,11 +63,11 @@ func (s *CachableCharacterService) List(streamerID string) ([]*model.CharacterIn
 	return characters, nil
 }
 
-func (s *CachableCharacterService) Add(streamerID, realm, name string) error {
-	if streamerID == "" || realm == "" || name == "" {
+func (s *CachableCharacterService) Add(streamerID, region, realm, name string) error {
+	if missingRequiredParameters(streamerID, region, realm, name) {
 		return errors.New("StreamerID, realm or name can not be empty")
 	}
-	bnetProfile, err := s.bnetClient.GetCharacterProfile(realm, name)
+	bnetProfile, err := s.bnetClient.GetCharacterProfile(region, realm, name)
 	if err != nil {
 		return err
 	}
@@ -77,6 +77,7 @@ func (s *CachableCharacterService) Add(streamerID, realm, name string) error {
 		Class:    profile.Class,
 		Name:     profile.Name,
 		Realm:    profile.Realm,
+		Region:   profile.Region,
 	}
 
 	// Trying to search characters for duplications
@@ -104,29 +105,29 @@ func (s *CachableCharacterService) Add(streamerID, realm, name string) error {
 	return nil
 }
 
-func (s *CachableCharacterService) Delete(streamerID, realm, name string) error {
-	if streamerID == "" || realm == "" || name == "" {
+func (s *CachableCharacterService) Delete(streamerID, region, realm, name string) error {
+	if missingRequiredParameters(streamerID, region, realm, name) {
 		return errors.New("StreamerID, realm or name can not be empty")
 	}
-	err := s.storage.Delete(streamerID, realm, name)
+	err := s.storage.Delete(streamerID, region, realm, name)
 	if err != nil {
 		return err
 	}
 	err = s.cache.ClearList(streamerID)
 	if err != nil {
-		return err
+		log.Printf("[ERROR] Can not delete character from cache: %s, %s - %s. %v", streamerID, realm, name, err)
 	}
 	return nil
 }
 
-func (s *CachableCharacterService) Profile(streamerID, realm, name string) (*model.Character, error) {
-	if streamerID == "" || realm == "" || name == "" {
+func (s *CachableCharacterService) Profile(streamerID, region, realm, name string) (*model.Character, error) {
+	if missingRequiredParameters(streamerID, region, realm, name) {
 		return nil, errors.New("StreamerID, realm or name can not be empty")
 	}
-	profile, err := s.cache.GetProfile(streamerID, realm, name)
+	profile, err := s.cache.GetProfile(streamerID, region, realm, name)
 	if err != nil {
 		log.Printf("[INFO] %s profile not found in cache (%s - %s). Search bnet.", streamerID, realm, name)
-		bnetProfile, err := s.bnetClient.GetCharacterProfile(realm, name)
+		bnetProfile, err := s.bnetClient.GetCharacterProfile(region, realm, name)
 		if err != nil {
 			return nil, err
 		}
@@ -137,4 +138,8 @@ func (s *CachableCharacterService) Profile(streamerID, realm, name string) (*mod
 		}
 	}
 	return profile, nil
+}
+
+func missingRequiredParameters(streamerID, region, realm, name string) bool {
+	return streamerID == "" || realm == "" || name == "" || region == ""
 }

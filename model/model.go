@@ -15,6 +15,7 @@ type Character struct {
 	Name     string
 	Realm    string
 	Class    string
+	Region   string
 	CharIcon string
 	Items    []Item
 }
@@ -23,6 +24,7 @@ type Character struct {
 type CharacterInfo struct {
 	Name     string
 	Realm    string
+	Region   string
 	Class    string
 	CharIcon string
 }

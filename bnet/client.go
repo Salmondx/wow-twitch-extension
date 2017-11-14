@@ -55,7 +55,7 @@ type Client struct {
 	secret string
 }
 
-const battleNetURL = "https://eu.api.battle.net/wow/character/%s/%s?fields=items&locale=en_GB&apikey=%s"
+const battleNetURL = "https://%s.api.battle.net/wow/character/%s/%s?fields=items&locale=en_GB&apikey=%s"
 
 // New creates a new Battle.Net client
 func New(secret string) *Client {
@@ -64,8 +64,8 @@ func New(secret string) *Client {
 
 // GetCharacterProfile retrieves character profile from Battle.Net API by character name and realm
 // If not found, then error is thrown
-func (c *Client) GetCharacterProfile(realm, name string) (*CharacterProfile, error) {
-	resp, err := http.Get(fmt.Sprintf(battleNetURL, realm, name, c.secret))
+func (c *Client) GetCharacterProfile(region, realm, name string) (*CharacterProfile, error) {
+	resp, err := http.Get(fmt.Sprintf(battleNetURL, region, realm, name, c.secret))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve profile for %s - %s. Reason: %v", realm, name, err)
 	}
@@ -82,5 +82,6 @@ func (c *Client) GetCharacterProfile(realm, name string) (*CharacterProfile, err
 	if err != nil {
 		return nil, fmt.Errorf("Can't deserialize response: %v", err)
 	}
+	characterProfile.Region = region
 	return &characterProfile, nil
 }

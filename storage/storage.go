@@ -9,5 +9,5 @@ type CharacterRepository interface {
 	// Add adds new character to database
 	Add(streamerID string, character *model.CharacterInfo) error
 	// Delete deletes character from database
-	Delete(streamerID, realm, name string) error
+	Delete(streamerID, region, realm, name string) error
 }

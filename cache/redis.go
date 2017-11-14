@@ -70,7 +70,7 @@ func (cache *CacheClient) AddCharacters(streamerID string, characterInfos []*mod
 	return nil
 }
 
-func (cache *CacheClient) GetProfile(streamerID, realm, name string) (*model.Character, error) {
+func (cache *CacheClient) GetProfile(streamerID, region, realm, name string) (*model.Character, error) {
 	if streamerID == "" || realm == "" || name == "" {
 		return nil, errors.New("StreamerID, realm or name can not be empty")
 	}
@@ -78,7 +78,7 @@ func (cache *CacheClient) GetProfile(streamerID, realm, name string) (*model.Cha
 	conn := cache.pool.Get()
 	defer conn.Close()
 
-	key := createProfileKey(streamerID, realm, name)
+	key := createProfileKey(streamerID, region, realm, name)
 	bytes, err := redis.Bytes(conn.Do("GET", key))
 	if err != nil {
 		return nil, fmt.Errorf("Can't get profile for %s. Reason: %v", streamerID, err)
@@ -100,7 +100,7 @@ func (cache *CacheClient) AddProfile(streamerID string, character *model.Charact
 	conn := cache.pool.Get()
 	defer conn.Close()
 
-	key := createProfileKey(streamerID, character.Realm, character.Name)
+	key := createProfileKey(streamerID, character.Region, character.Realm, character.Name)
 	data, err := json.Marshal(character)
 	if err != nil {
 		return fmt.Errorf("Can't serialize profile for %s. Reason: %v", streamerID, err)

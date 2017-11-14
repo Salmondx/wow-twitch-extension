@@ -103,7 +103,7 @@ func (db *DynamoRepository) Add(streamerID string, character *model.CharacterInf
 	return nil
 }
 
-func (db *DynamoRepository) Delete(streamerID, realm, name string) error {
+func (db *DynamoRepository) Delete(streamerID, region, realm, name string) error {
 	if streamerID == "" || realm == "" || name == "" {
 		return errors.New("StreamerID, realm or name can not be empty")
 	}
@@ -114,7 +114,7 @@ func (db *DynamoRepository) Delete(streamerID, realm, name string) error {
 				S: aws.String(streamerID),
 			},
 			"characterID": {
-				S: aws.String(genCharacterID(realm, name)),
+				S: aws.String(genCharacterID(region, realm, name)),
 			},
 		},
 		TableName: aws.String(characterTable),
@@ -128,11 +128,11 @@ func (db *DynamoRepository) Delete(streamerID, realm, name string) error {
 }
 
 func createCharacterID(character *model.CharacterInfo) string {
-	return genCharacterID(character.Realm, character.Name)
+	return genCharacterID(character.Region, character.Realm, character.Name)
 }
 
-func genCharacterID(realm, name string) string {
-	return realm + ":" + name
+func genCharacterID(region, realm, name string) string {
+	return region + ":" + realm + ":" + name
 }
 
 func selectAllQuery(streamerID string) *dynamodb.QueryInput {

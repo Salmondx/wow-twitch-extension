@@ -18,6 +18,7 @@ type RequestParameters struct {
 	Realm      string
 	Name       string
 	StreamerID string
+	Region     string
 	Role       string
 }
 
@@ -57,10 +58,12 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 		queryParams := r.URL.Query()
 		realm := queryParams.Get("realm")
 		name := queryParams.Get("name")
+		region := queryParams.Get("region")
 
 		parameters := RequestParameters{
 			Realm:      realm,
 			Name:       name,
+			Region:     region,
 			StreamerID: "asd112314",
 			Role:       "streamer",
 		}
@@ -111,11 +114,11 @@ func profileHandler(method string, parameters RequestParameters, characterServic
 	if method != http.MethodGet {
 		return nil, methodNotAllowed
 	}
-	if parameters.StreamerID == "" || parameters.Name == "" || parameters.Realm == "" {
+	if missingRequiredParameters(parameters) {
 		return nil, badRequest
 	}
 	log.Printf("[INFO] Profile for %v - %v", parameters.Realm, parameters.Name)
-	profile, err := characterService.Profile(parameters.StreamerID, parameters.Realm, parameters.Name)
+	profile, err := characterService.Profile(parameters.StreamerID, parameters.Region, parameters.Realm, parameters.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -144,12 +147,12 @@ func addCharacterHandler(method string, parameters RequestParameters, chacterSer
 	if parameters.Role != "streamer" {
 		return nil, wrongRole
 	}
-	if parameters.StreamerID == "" || parameters.Realm == "" || parameters.Name == "" {
+	if missingRequiredParameters(parameters) {
 		return nil, badRequest
 	}
 
 	log.Printf("[INFO] Adding character for %s: %s - %s", parameters.StreamerID, parameters.Realm, parameters.Name)
-	err := chacterService.Add(parameters.StreamerID, parameters.Realm, parameters.Name)
+	err := chacterService.Add(parameters.StreamerID, parameters.Region, parameters.Realm, parameters.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -163,16 +166,20 @@ func deleteCharacterHandler(method string, parameters RequestParameters, chacter
 	if parameters.Role != "streamer" {
 		return nil, wrongRole
 	}
-	if parameters.StreamerID == "" || parameters.Realm == "" || parameters.Name == "" {
+	if missingRequiredParameters(parameters) {
 		return nil, badRequest
 	}
 
 	log.Printf("[INFO] Deleting character for %s: %s - %s", parameters.StreamerID, parameters.Realm, parameters.Name)
-	err := chacterService.Delete(parameters.StreamerID, parameters.Realm, parameters.Name)
+	err := chacterService.Delete(parameters.StreamerID, parameters.Region, parameters.Realm, parameters.Name)
 	if err != nil {
 		return nil, err
 	}
 	return nil, nil
+}
+
+func missingRequiredParameters(parameters RequestParameters) bool {
+	return parameters.StreamerID == "" || parameters.Realm == "" || parameters.Name == "" || parameters.Region == ""
 }
 
 func main() {
