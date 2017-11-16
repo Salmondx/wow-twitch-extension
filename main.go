@@ -45,7 +45,7 @@ var (
 
 	characterNotFound = ErrorMessage{100, "No character with such name and realm pair"}
 	characterLimit    = ErrorMessage{101, "Character limit reached. Delete character to add a new one"}
-	unknownError      = ErrorMessage{102, "Unknown error occurred"}
+	unknownError      = ErrorMessage{102, "Unknown error occurred. Try again later"}
 	missingParameters = ErrorMessage{103, "Required parameters were not provided"}
 )
 
@@ -53,6 +53,15 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 	characterService service.CharacterService,
 	successCode int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.Header().Add("Access-Control-Allow-Origin", "*")
+			w.Header().Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE")
+			w.Header().Add("Access-Control-Allow-Headers", "Authorization")
+			return
+		}
+		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE")
+		w.Header().Add("Access-Control-Allow-Headers", "Authorization")
+		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Content-Type", "application/json")
 
 		queryParams := r.URL.Query()
