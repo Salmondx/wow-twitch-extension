@@ -39,6 +39,7 @@ func (e HttpError) Error() string {
 // Partial commit, rewrite using DI
 var (
 	clientSecret     = os.Getenv("CLIENT_SECRET")
+	redisAddress     = os.Getenv("REDIS_ADDRESS")
 	badRequest       = HttpError{"Missing required parameters", http.StatusBadRequest}
 	methodNotAllowed = HttpError{"Method not allowed", http.StatusMethodNotAllowed}
 	wrongRole        = HttpError{"Only streamer is allowed to update characters list", http.StatusForbidden}
@@ -192,8 +193,14 @@ func missingRequiredParameters(parameters RequestParameters) bool {
 }
 
 func main() {
+	if clientSecret == "" {
+		log.Fatalln("Battle net client secret can not be null or empty! Provide it via CLIENT_SECRET environment variable")
+	}
+	if redisAddress == "" {
+		log.Fatalln("Redis address can not be null or empty. Provide it via REDIS_ADDRESS environment variable")
+	}
 	bnetClient := bnet.New(clientSecret)
-	redisCache := cache.New("localhost:6379")
+	redisCache := cache.New(redisAddress)
 	dynamoStorage, _ := storage.New()
 	cacheService := service.New(redisCache, dynamoStorage, bnetClient)
 

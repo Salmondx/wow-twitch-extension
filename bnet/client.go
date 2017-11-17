@@ -89,6 +89,10 @@ func (c *Client) GetCharacterProfile(region, realm, name string) (*CharacterProf
 func locale(region string) string {
 	if region == "us" {
 		return "en_US"
+	} else if region == "kr" {
+		return "ko_KR"
+	} else if region == "tw" {
+		return "zh_TR"
 	}
 	return "en_GB"
 }
