@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/salmondx/wow-twitch-extension/bnet"
 	"github.com/salmondx/wow-twitch-extension/cache"
@@ -38,6 +42,7 @@ func (e HttpError) Error() string {
 
 // Partial commit, rewrite using DI
 var (
+	twitchSecret     []byte
 	clientSecret     = os.Getenv("CLIENT_SECRET")
 	redisAddress     = os.Getenv("REDIS_ADDRESS")
 	badRequest       = HttpError{"Missing required parameters", http.StatusBadRequest}
@@ -60,9 +65,44 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 			w.Header().Add("Access-Control-Allow-Headers", "Authorization")
 			return
 		}
+
 		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE")
 		w.Header().Add("Access-Control-Allow-Headers", "Authorization")
 		w.Header().Add("Access-Control-Allow-Origin", "*")
+
+		rawToken := r.Header.Get("Authorization")
+		log.Printf("%s\n", rawToken)
+		if rawToken == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		token, err := jwt.Parse(rawToken, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("Unexpected signing method")
+			}
+			return twitchSecret, nil
+		})
+		if err != nil {
+			log.Printf("[INFO] Unauthorized: %v", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || !token.Valid {
+			log.Printf("[INFO] Invalid token")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		streamerID, ok := claims["channel_id"].(string)
+		role, roleOk := claims["role"].(string)
+		if !ok || !roleOk {
+			log.Printf("[WARN] Can't get channel_id or role property")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		w.Header().Add("Content-Type", "application/json")
 
 		queryParams := r.URL.Query()
@@ -74,8 +114,8 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 			Realm:      realm,
 			Name:       name,
 			Region:     region,
-			StreamerID: "asd112314",
-			Role:       "streamer",
+			StreamerID: streamerID,
+			Role:       role,
 		}
 		data, err := h(r.Method, parameters, characterService)
 		if err != nil {
@@ -154,7 +194,7 @@ func addCharacterHandler(method string, parameters RequestParameters, chacterSer
 	if method != http.MethodPost {
 		return nil, methodNotAllowed
 	}
-	if parameters.Role != "streamer" {
+	if parameters.Role != "broadcaster" {
 		return nil, wrongRole
 	}
 	if missingRequiredParameters(parameters) {
@@ -173,7 +213,7 @@ func deleteCharacterHandler(method string, parameters RequestParameters, chacter
 	if method != http.MethodDelete {
 		return nil, methodNotAllowed
 	}
-	if parameters.Role != "streamer" {
+	if parameters.Role != "broadcaster" {
 		return nil, wrongRole
 	}
 	if missingRequiredParameters(parameters) {
@@ -199,6 +239,16 @@ func main() {
 	if redisAddress == "" {
 		log.Fatalln("Redis address can not be null or empty. Provide it via REDIS_ADDRESS environment variable")
 	}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatalln("JWT Secret can not be null or empty. Provide it via JWT_SECRET environment variable")
+	}
+	s, err := base64.StdEncoding.DecodeString(jwtSecret)
+	if err != nil {
+		log.Fatalf("Can't decode JWT Secret from base64: %v", err)
+	}
+	twitchSecret = []byte(s)
+
 	bnetClient := bnet.New(clientSecret)
 	redisCache := cache.New(redisAddress)
 	dynamoStorage, _ := storage.New()
