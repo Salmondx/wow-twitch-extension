@@ -9,8 +9,9 @@ import (
 	"github.com/salmondx/wow-twitch-extension/model"
 )
 
-const iconPlaceholderURL = "http://media.blizzard.com/wow/icons/36/%s.jpg"
-const charIconPlaceholderURL = "http://render-api-%s.worldofwarcraft.com/static-render/%s/%s"
+const iconPlaceholderURL = "https://render-%s.worldofwarcraft.com/icons/36/%s.jpg"
+const charIconPlaceholderURL = "https://render-%s.worldofwarcraft.com/character/%s"
+
 const wowheadURL = "item=%d"
 
 // Convert converts profile from Battle.Net API to a required object
@@ -20,12 +21,12 @@ func Convert(bnetProfile *bnet.CharacterProfile) *model.Character {
 	extensionProfile.Realm = bnetProfile.Realm
 	extensionProfile.Region = bnetProfile.Region
 	extensionProfile.Class = classByIndex(bnetProfile.Class)
-	extensionProfile.CharIcon = fmt.Sprintf(charIconPlaceholderURL, bnetProfile.Region, bnetProfile.Region, bnetProfile.Thumbnail)
-	extensionProfile.Items = getItems(bnetProfile.Items)
+	extensionProfile.CharIcon = fmt.Sprintf(charIconPlaceholderURL, bnetProfile.Region, bnetProfile.Thumbnail)
+	extensionProfile.Items = getItems(bnetProfile.Items, bnetProfile.Region)
 	return &extensionProfile
 }
 
-func getItems(bnetItems bnet.Items) []model.Item {
+func getItems(bnetItems bnet.Items, region string) []model.Item {
 	items := make([]model.Item, 0)
 
 	reflectValue := reflect.ValueOf(bnetItems)
@@ -37,17 +38,17 @@ func getItems(bnetItems bnet.Items) []model.Item {
 			continue
 		}
 
-		items = append(items, convItem(item, name))
+		items = append(items, convItem(item, name, region))
 	}
 	return items
 }
 
-func convItem(bnetItem bnet.Item, itemType string) model.Item {
+func convItem(bnetItem bnet.Item, itemType string, region string) model.Item {
 	item := model.Item{}
 	item.Type = itemType
 	item.Name = bnetItem.Name
 	item.ItemLvl = bnetItem.ItemLevel
-	item.IconURL = fmt.Sprintf(iconPlaceholderURL, bnetItem.Icon)
+	item.IconURL = fmt.Sprintf(iconPlaceholderURL, region, bnetItem.Icon)
 	wowheadURL := fmt.Sprintf(wowheadURL, bnetItem.ID)
 	enchantmentsURL := genEnchURL(bnetItem)
 	if enchantmentsURL != "" {

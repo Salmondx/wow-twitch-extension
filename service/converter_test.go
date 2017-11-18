@@ -60,6 +60,7 @@ func TestConverter(t *testing.T) {
 }
 
 func TestItemConverter(t *testing.T) {
+	region := "eu"
 	var tests = []struct {
 		item         bnet.Item
 		itemType     string
@@ -81,7 +82,7 @@ func TestItemConverter(t *testing.T) {
 		},
 			wowhead:  "item=133767&gems=1235:12445&ench=123567",
 			itemType: "Neck",
-			icon:     "http://media.blizzard.com/wow/icons/36/inv_7_0raid_necklace_14a.jpg",
+			icon:     "https://render-eu.worldofwarcraft.com/icons/36/inv_7_0raid_necklace_14a.jpg",
 		},
 		{item: bnet.Item{
 			ID:        133767,
@@ -91,12 +92,12 @@ func TestItemConverter(t *testing.T) {
 		},
 			wowhead:  "item=133767",
 			itemType: "Shoulders",
-			icon:     "http://media.blizzard.com/wow/icons/36/inv_7_0raid_necklace_14a.jpg",
+			icon:     "https://render-eu.worldofwarcraft.com/icons/36/inv_7_0raid_necklace_14a.jpg",
 		},
 	}
 
 	for _, tt := range tests {
-		item := convItem(tt.item, tt.itemType)
+		item := convItem(tt.item, tt.itemType, region)
 		if item.Type != tt.itemType {
 			t.Errorf("Wrong type")
 		}
@@ -104,7 +105,7 @@ func TestItemConverter(t *testing.T) {
 			t.Error("Names not equal")
 		}
 		if item.IconURL != tt.icon {
-			t.Error("IconURL not equal")
+			t.Errorf("IconURL not equal: %s", item.IconURL)
 		}
 		if item.ItemLvl != tt.item.ItemLevel {
 			t.Error("Wront item lvl")
