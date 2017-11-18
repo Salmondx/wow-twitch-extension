@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -71,7 +72,6 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 
 		rawToken := r.Header.Get("Authorization")
-		log.Printf("%s\n", rawToken)
 		if rawToken == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -258,8 +258,12 @@ func main() {
 	http.HandleFunc("/list", requestHandler(listHandler, cacheService, http.StatusOK))
 	http.HandleFunc("/list/add", requestHandler(addCharacterHandler, cacheService, http.StatusCreated))
 	http.HandleFunc("/list/delete", requestHandler(deleteCharacterHandler, cacheService, http.StatusNoContent))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Healthy")
+		return
+	})
 	log.Println("Starting server")
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":5000", nil))
 
 }
