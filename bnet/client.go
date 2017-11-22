@@ -73,12 +73,14 @@ type ArenaStats struct {
 	SeasonLost   int
 }
 
+type Brackets struct {
+	TwoPlayers   ArenaStats `json:"ARENA_BRACKET_2v2"`
+	ThreePlayers ArenaStats `json:"ARENA_BRACKET_3v3"`
+	RBG          ArenaStats `json:"ARENA_BRACKET_RBG"`
+}
+
 type ArenaRating struct {
-	Brackets struct {
-		TwoPlayers   ArenaStats `json:"ARENA_BRACKET_2v2"`
-		ThreePlayers ArenaStats `json:"ARENA_BRACKET_3v3"`
-		RBG          ArenaStats `json:"ARENA_BRACKET_RBG"`
-	}
+	Brackets Brackets
 }
 
 type CharacterProfile struct {

@@ -13,6 +13,7 @@ const iconPlaceholderURL = "https://render-%s.worldofwarcraft.com/icons/36/%s.jp
 const charIconPlaceholderURL = "https://render-%s.worldofwarcraft.com/character/%s"
 
 const wowheadURL = "item=%d"
+const wowheadSpellURL = "spell=%d"
 
 // Convert converts profile from Battle.Net API to a required object
 func Convert(bnetProfile *bnet.CharacterProfile) *model.Character {
@@ -23,7 +24,76 @@ func Convert(bnetProfile *bnet.CharacterProfile) *model.Character {
 	extensionProfile.Class = classByIndex(bnetProfile.Class)
 	extensionProfile.CharIcon = fmt.Sprintf(charIconPlaceholderURL, bnetProfile.Region, bnetProfile.Thumbnail)
 	extensionProfile.Items = getItems(bnetProfile.Items, bnetProfile.Region)
+	extensionProfile.Specs = getSpecs(bnetProfile.Talents, bnetProfile.Region)
+	extensionProfile.ArenaRating = getArenaRating(bnetProfile.ArenaRating)
 	return &extensionProfile
+}
+
+func getSpecs(bnetTalents []bnet.SpecTalents, region string) []model.Spec {
+	specs := make([]model.Spec, 0)
+	for _, bnetSpec := range bnetTalents {
+		if len(bnetSpec.Talents) == 0 {
+			continue
+		}
+		spec := model.Spec{}
+		spec.Selected = bnetSpec.Selected
+
+		bnetSpecInfo := bnetSpec.Talents[0].Spec
+		spec.Name = bnetSpecInfo.Name
+		spec.Order = bnetSpecInfo.Order
+		spec.IconURL = fmt.Sprintf(iconPlaceholderURL, region, bnetSpecInfo.Icon)
+
+		talents := make([]model.Talent, 0)
+
+		for _, bnetTalent := range bnetSpec.Talents {
+			talent := model.Talent{}
+			talent.Tier = bnetTalent.Tier
+
+			spell := model.Spell{}
+			spell.Description = bnetTalent.Spell.Description
+			spell.ID = bnetTalent.Spell.ID
+			spell.IconURL = fmt.Sprintf(iconPlaceholderURL, region, bnetTalent.Spell.Icon)
+			spell.Name = bnetTalent.Spell.Name
+			spell.DescriptionURL = fmt.Sprintf(wowheadSpellURL, bnetTalent.Spell.ID)
+
+			talent.Spell = spell
+			talents = append(talents, talent)
+		}
+		spec.Talents = talents
+		specs = append(specs, spec)
+	}
+	return specs
+}
+
+func getArenaRating(bnetArena bnet.ArenaRating) []model.ArenaRating {
+	arenaRating := make([]model.ArenaRating, 3)
+
+	brackets := bnetArena.Brackets
+
+	arenaRating[0] = model.ArenaRating{
+		Type:         "2v2",
+		Rating:       brackets.TwoPlayers.Rating,
+		SeasonPlayed: brackets.TwoPlayers.SeasonPlayed,
+		SeasonWon:    brackets.TwoPlayers.SeasonWon,
+		SeasonLost:   brackets.TwoPlayers.SeasonLost,
+	}
+
+	arenaRating[1] = model.ArenaRating{
+		Type:         "3v3",
+		Rating:       brackets.ThreePlayers.Rating,
+		SeasonPlayed: brackets.ThreePlayers.SeasonPlayed,
+		SeasonWon:    brackets.ThreePlayers.SeasonWon,
+		SeasonLost:   brackets.ThreePlayers.SeasonLost,
+	}
+
+	arenaRating[2] = model.ArenaRating{
+		Type:         "RBG",
+		Rating:       brackets.RBG.Rating,
+		SeasonPlayed: brackets.RBG.SeasonPlayed,
+		SeasonWon:    brackets.RBG.SeasonWon,
+		SeasonLost:   brackets.RBG.SeasonLost,
+	}
+	return arenaRating
 }
 
 func getItems(bnetItems bnet.Items, region string) []model.Item {

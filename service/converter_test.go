@@ -6,6 +6,16 @@ import (
 	"github.com/salmondx/wow-twitch-extension/bnet"
 )
 
+var specTalents = []bnet.SpecTalents{
+	bnet.SpecTalents{
+		Selected: true,
+		Talents: []bnet.Talents{
+			bnet.Talents{Tier: 0, Spell: bnet.Spell{ID: 107570, Name: "Storm Bolt", Icon: "warrior_talent_icon_stormbolt", Description: "Hurls your weapon at an enemy, causing 14,348 Physical damage and stunning for 4 sec."}, Spec: bnet.Spec{Name: "Arms", Icon: "ability_warrior_savageblow", Order: 0}},
+			bnet.Talents{Tier: 0, Spell: bnet.Spell{ID: 203179, Name: "Opportunity Strikes", Icon: "ability_backstab", Description: "Your melee abilities have up to a 60% chance, based on the target's missing health, to trigger an extra attack that deals 24,080 Physical damage and generates 5 Rage."}, Spec: bnet.Spec{Name: "Arms", Icon: "ability_warrior_savageblow", Order: 0}},
+		},
+	},
+}
+
 func TestConverter(t *testing.T) {
 	bnetProfile := &bnet.CharacterProfile{
 		Class:     2,
@@ -28,6 +38,14 @@ func TestConverter(t *testing.T) {
 					Gem1:        12445,
 					Enchantment: 123567,
 				},
+			},
+		},
+		Talents: specTalents,
+		ArenaRating: bnet.ArenaRating{
+			bnet.Brackets{
+				TwoPlayers:   bnet.ArenaStats{1950, 0, 0, 0},
+				ThreePlayers: bnet.ArenaStats{0, 0, 0, 0},
+				RBG:          bnet.ArenaStats{0, 0, 0, 0},
 			},
 		},
 	}
@@ -56,6 +74,78 @@ func TestConverter(t *testing.T) {
 	head := actual.Items[0]
 	if head.Name != "Fearless Combatant's Plate Helm of the Quickblade" {
 		t.Error()
+	}
+
+	if len(actual.Specs) != 1 {
+		t.Fatalf("Spec doesn't converted")
+	}
+
+	if len(actual.Specs[0].Talents) != 2 {
+		t.Fatalf("Talants doesn't converted")
+	}
+}
+
+func TestTalentConverter(t *testing.T) {
+	converted := getSpecs(specTalents, "eu")
+	if len(converted) == 0 {
+		t.Fatalf("Failed to convert")
+	}
+	spec := converted[0]
+	if spec.Name != "Arms" {
+		t.Errorf("Wrong spec name")
+	}
+
+	if !spec.Selected {
+		t.Errorf("Spec is not selected")
+	}
+
+	if spec.IconURL == "" {
+		t.Errorf("Icon is empty")
+	}
+
+	if len(spec.Talents) == 0 {
+		t.Fatalf("Talents not converted")
+	}
+
+	talents := spec.Talents
+
+	if talents[0].Spell.Name != "Storm Bolt" || talents[1].Spell.Name != "Opportunity Strikes" {
+		t.Errorf("Wrong spell name")
+	}
+
+	if talents[0].Spell.IconURL == "" || talents[1].Spell.IconURL == "" {
+		t.Errorf("Spell icon is empty")
+	}
+
+	if talents[0].Spell.ID == 0 || talents[1].Spell.ID == 0 {
+		t.Errorf("Spell id is empty")
+	}
+}
+
+func TestArenaConverter(t *testing.T) {
+	bnetArena := bnet.ArenaRating{
+		bnet.Brackets{
+			TwoPlayers:   bnet.ArenaStats{0, 0, 0, 0},
+			ThreePlayers: bnet.ArenaStats{0, 0, 0, 0},
+			RBG:          bnet.ArenaStats{0, 0, 0, 0},
+		},
+	}
+
+	rating := getArenaRating(bnetArena)
+	if len(rating) != 3 {
+		t.Errorf("Failed to convert rating. Length is not 3")
+	}
+
+	if rating[0].Type != "2v2" {
+		t.Errorf("2v2 not found")
+	}
+
+	if rating[1].Type != "3v3" {
+		t.Errorf("3v3 not found")
+	}
+
+	if rating[2].Type != "RBG" {
+		t.Errorf("RBG not found")
 	}
 }
 
