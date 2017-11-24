@@ -38,7 +38,7 @@ func getSpecs(bnetTalents []bnet.SpecTalents, region string) []model.Spec {
 		spec := model.Spec{}
 		spec.Selected = bnetSpec.Selected
 
-		bnetSpecInfo := bnetSpec.Talents[0].Spec
+		bnetSpecInfo := getSpecInfo(bnetSpec.Talents)
 		spec.Name = bnetSpecInfo.Name
 		spec.Order = bnetSpecInfo.Order
 		spec.IconURL = fmt.Sprintf(iconPlaceholderURL, region, bnetSpecInfo.Icon)
@@ -63,6 +63,16 @@ func getSpecs(bnetTalents []bnet.SpecTalents, region string) []model.Spec {
 		specs = append(specs, spec)
 	}
 	return specs
+}
+
+func getSpecInfo(bnetTalents []bnet.Talents) bnet.Spec {
+	for _, bnetTalent := range bnetTalents {
+		spec := bnetTalent.Spec
+		if spec.Name != "" {
+			return spec
+		}
+	}
+	return bnet.Spec{}
 }
 
 func getArenaRating(bnetArena bnet.ArenaRating) []model.ArenaRating {
