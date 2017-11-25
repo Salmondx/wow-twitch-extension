@@ -42,20 +42,64 @@ type Items struct {
 	OffHand  Item
 }
 
+type Spell struct {
+	ID          int
+	Name        string
+	Icon        string
+	Description string
+}
+
+type Spec struct {
+	Name  string
+	Icon  string
+	Order int
+}
+
+type Talents struct {
+	Tier  int
+	Spell Spell
+	Spec  Spec
+}
+
+type SpecTalents struct {
+	Selected bool
+	Talents  []Talents
+}
+
+type ArenaStats struct {
+	Rating       int
+	SeasonPlayed int
+	SeasonWon    int
+	SeasonLost   int
+}
+
+type Brackets struct {
+	TwoPlayers   ArenaStats `json:"ARENA_BRACKET_2v2"`
+	ThreePlayers ArenaStats `json:"ARENA_BRACKET_3v3"`
+	RBG          ArenaStats `json:"ARENA_BRACKET_RBG"`
+}
+
+type ArenaRating struct {
+	Brackets Brackets
+}
+
 type CharacterProfile struct {
-	Name      string
-	Realm     string
-	Region    string
-	Class     int
-	Thumbnail string
-	Items     Items
+	Name        string
+	Realm       string
+	Region      string
+	Class       int
+	Level       int
+	Thumbnail   string
+	Items       Items
+	Talents     []SpecTalents
+	ArenaRating ArenaRating `json:"pvp"`
 }
 
 type Client struct {
 	secret string
 }
 
-const battleNetURL = "https://%s.api.battle.net/wow/character/%s/%s?fields=items&locale=%s&apikey=%s"
+const battleNetURL = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents,items,pvp&locale=%s&apikey=%s"
 
 // New creates a new Battle.Net client
 func New(secret string) *Client {

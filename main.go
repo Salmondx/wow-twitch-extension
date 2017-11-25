@@ -41,11 +41,14 @@ func (e HttpError) Error() string {
 	return e.S
 }
 
+const StageDev = "dev"
+
 // Partial commit, rewrite using DI
 var (
 	twitchSecret     []byte
 	clientSecret     = os.Getenv("CLIENT_SECRET")
 	redisAddress     = os.Getenv("REDIS_ADDRESS")
+	stage            = os.Getenv("STAGE")
 	badRequest       = HttpError{"Missing required parameters", http.StatusBadRequest}
 	methodNotAllowed = HttpError{"Method not allowed", http.StatusMethodNotAllowed}
 	wrongRole        = HttpError{"Only streamer is allowed to update characters list", http.StatusForbidden}
@@ -77,30 +80,40 @@ func requestHandler(h func(string, RequestParameters, service.CharacterService) 
 			return
 		}
 
-		token, err := jwt.Parse(rawToken, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, errors.New("Unexpected signing method")
-			}
-			return twitchSecret, nil
-		})
-		if err != nil {
-			log.Printf("[INFO] Unauthorized: %v", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || !token.Valid {
-			log.Printf("[INFO] Invalid token")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+		var streamerID, role string
+		// production mode. should check token authorization
+		if stage != StageDev {
 
-		streamerID, ok := claims["channel_id"].(string)
-		role, roleOk := claims["role"].(string)
-		if !ok || !roleOk {
-			log.Printf("[WARN] Can't get channel_id or role property")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+			token, err := jwt.Parse(rawToken, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, errors.New("Unexpected signing method")
+				}
+				return twitchSecret, nil
+			})
+			if err != nil {
+				log.Printf("[INFO] Unauthorized: %v", err)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok || !token.Valid {
+				log.Printf("[INFO] Invalid token")
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			var roleOk bool
+			streamerID, ok = claims["channel_id"].(string)
+			role, roleOk = claims["role"].(string)
+			if !ok || !roleOk {
+				log.Printf("[WARN] Can't get channel_id or role property")
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+		} else {
+			streamerID = "testing_streamer"
+			role = "broadcaster"
 		}
 
 		w.Header().Add("Content-Type", "application/json")
