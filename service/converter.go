@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/salmondx/wow-twitch-extension/bnet"
 	"github.com/salmondx/wow-twitch-extension/model"
@@ -21,6 +22,8 @@ func Convert(bnetProfile *bnet.CharacterProfile) *model.Character {
 	extensionProfile.Name = bnetProfile.Name
 	extensionProfile.Realm = bnetProfile.Realm
 	extensionProfile.Region = bnetProfile.Region
+	extensionProfile.Guild = bnetProfile.Guild.Name
+	extensionProfile.ItemLvl = bnetProfile.Items.AverageItemLevelEquipped
 	extensionProfile.Class = classByIndex(bnetProfile.Class)
 	extensionProfile.CharIcon = fmt.Sprintf(charIconPlaceholderURL, bnetProfile.Region, bnetProfile.Thumbnail)
 	extensionProfile.Items = getItems(bnetProfile.Items, bnetProfile.Region)
@@ -113,6 +116,12 @@ func getItems(bnetItems bnet.Items, region string) []model.Item {
 
 	for i := 0; i < reflectValue.NumField(); i++ {
 		name := reflectValue.Type().Field(i).Name
+		tag := reflectValue.Type().Field(i).Tag
+		// find not necessary elements from items
+		tagValues := tag.Get("json")
+		if strings.Contains(tagValues, "omitempty") {
+			continue
+		}
 		item := reflectValue.Field(i).Interface().(bnet.Item)
 		if item.Name == "" {
 			continue

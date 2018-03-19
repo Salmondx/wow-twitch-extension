@@ -23,7 +23,9 @@ func TestConverter(t *testing.T) {
 		Name:      "Salmond",
 		Region:    "eu",
 		Thumbnail: "soulflayer/51/64174899-avatar.jpg",
+		Guild:     bnet.Guild{"Test"},
 		Items: bnet.Items{
+			AverageItemLevelEquipped: 942,
 			Head: bnet.Item{
 				ID:   142982,
 				Name: "Fearless Combatant's Plate Helm of the Quickblade",
@@ -59,6 +61,12 @@ func TestConverter(t *testing.T) {
 		t.Errorf("Realm not equals")
 	}
 
+	if actual.Guild != "Test" {
+		t.Errorf("Guild not equals")
+	}
+	if actual.ItemLvl != 942 {
+		t.Errorf("Wrong item lvl")
+	}
 	if actual.Region != "eu" {
 		t.Errorf("Region not equals")
 	}

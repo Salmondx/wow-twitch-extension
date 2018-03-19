@@ -127,6 +127,8 @@ func (cache *CacheClient) Update(streamerID string, character *model.Character) 
 			Name:     character.Name,
 			Realm:    character.Realm,
 			Region:   character.Region,
+			Guild:    character.Guild,
+			ItemLvl:  character.ItemLvl,
 		}
 		characters = append(characters, &charInfo)
 		err = cache.AddCharacters(streamerID, characters)

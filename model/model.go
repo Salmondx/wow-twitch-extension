@@ -45,6 +45,8 @@ type Character struct {
 	Class       string
 	Region      string
 	CharIcon    string
+	ItemLvl     int
+	Guild       string
 	Items       []Item
 	Specs       []Spec
 	ArenaRating []ArenaRating
@@ -57,4 +59,6 @@ type CharacterInfo struct {
 	Region   string
 	Class    string
 	CharIcon string
+	Guild    string
+	ItemLvl  int
 }

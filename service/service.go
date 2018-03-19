@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/salmondx/wow-twitch-extension/bnet"
 
@@ -46,13 +47,20 @@ func (s *CachableCharacterService) List(streamerID string) ([]*model.CharacterIn
 		return nil, errors.New("StreamerID can not be empty")
 	}
 	characters, err := s.cache.List(streamerID)
+	// expired cache info
 	if err != nil {
 		log.Printf("[WARN] Can't retrive characters list from cache: %s. %v", streamerID, err)
+		// get characters list from db
 		characters, err = s.storage.List(streamerID)
 		if err != nil {
 			return nil, err
 		}
-		err = s.cache.AddCharacters(streamerID, characters)
+		// Get updated character info from bnet
+		updatedInfo, err := s.getCharactersInfo(characters)
+		if err != err {
+			return nil, err
+		}
+		err = s.cache.AddCharacters(streamerID, updatedInfo)
 		if err != nil {
 			log.Printf("[ERROR] %v", err)
 		}
@@ -78,6 +86,8 @@ func (s *CachableCharacterService) Add(streamerID, region, realm, name string) e
 		Name:     profile.Name,
 		Realm:    profile.Realm,
 		Region:   profile.Region,
+		Guild:    profile.Guild,
+		ItemLvl:  profile.ItemLvl,
 	}
 
 	// Trying to search characters for duplications
@@ -142,4 +152,42 @@ func (s *CachableCharacterService) Profile(streamerID, region, realm, name strin
 
 func missingRequiredParameters(streamerID, region, realm, name string) bool {
 	return streamerID == "" || realm == "" || name == "" || region == ""
+}
+
+func (s *CachableCharacterService) getCharactersInfo(oldInfo []*model.CharacterInfo) ([]*model.CharacterInfo, error) {
+	if len(oldInfo) == 0 {
+		return []*model.CharacterInfo{}, nil
+	}
+	var wg sync.WaitGroup
+	var lock sync.Mutex
+	var retrieveError error
+	updatedCharacterInfo := make([]*model.CharacterInfo, 0)
+	// have to simulateneosly update all characters
+	for _, oldCharacter := range oldInfo {
+		wg.Add(1)
+		go func(region, realm, name string) {
+			defer wg.Done()
+			defer lock.Unlock()
+
+			character, err := s.bnetClient.GetCharacterProfile(region, realm, name)
+			lock.Lock()
+			if err != nil {
+				retrieveError = err
+				return
+			}
+			profile := Convert(character)
+			charInfo := model.CharacterInfo{
+				CharIcon: profile.CharIcon,
+				Class:    profile.Class,
+				Name:     profile.Name,
+				Realm:    profile.Realm,
+				Region:   profile.Region,
+				Guild:    profile.Guild,
+				ItemLvl:  profile.ItemLvl,
+			}
+			updatedCharacterInfo = append(updatedCharacterInfo, &charInfo)
+		}(oldCharacter.Region, oldCharacter.Realm, oldCharacter.Name)
+	}
+	wg.Wait()
+	return updatedCharacterInfo, retrieveError
 }

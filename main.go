@@ -188,7 +188,7 @@ func profileHandler(method string, parameters RequestParameters, characterServic
 	return profile, nil
 }
 
-func listHandler(method string, parameters RequestParameters, chacterService service.CharacterService) (interface{}, error) {
+func listHandler(method string, parameters RequestParameters, characterService service.CharacterService) (interface{}, error) {
 	if method != http.MethodGet {
 		return nil, methodNotAllowed
 	}
@@ -196,7 +196,7 @@ func listHandler(method string, parameters RequestParameters, chacterService ser
 		return nil, badRequest
 	}
 	log.Printf("[INFO] Character list for %s", parameters.StreamerID)
-	characters, err := chacterService.List(parameters.StreamerID)
+	characters, err := characterService.List(parameters.StreamerID)
 	if err != nil {
 		return nil, err
 	}

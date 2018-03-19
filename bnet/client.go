@@ -23,23 +23,28 @@ type Enchantments struct {
 }
 
 type Items struct {
-	Head     Item
-	Neck     Item
-	Shoulder Item
-	Back     Item
-	Chest    Item
-	Tabard   Item
-	Wrist    Item
-	Hands    Item
-	Waist    Item
-	Legs     Item
-	Feet     Item
-	Finger1  Item
-	Finger2  Item
-	Trinket1 Item
-	Trinket2 Item
-	MainHand Item
-	OffHand  Item
+	AverageItemLevelEquipped int `json:"averageItemLevelEquipped,omitempty"`
+	Head                     Item
+	Neck                     Item
+	Shoulder                 Item
+	Back                     Item
+	Chest                    Item
+	Tabard                   Item
+	Wrist                    Item
+	Hands                    Item
+	Waist                    Item
+	Legs                     Item
+	Feet                     Item
+	Finger1                  Item
+	Finger2                  Item
+	Trinket1                 Item
+	Trinket2                 Item
+	MainHand                 Item
+	OffHand                  Item
+}
+
+type Guild struct {
+	Name string `json:"name"`
 }
 
 type Spell struct {
@@ -90,6 +95,7 @@ type CharacterProfile struct {
 	Class       int
 	Level       int
 	Thumbnail   string
+	Guild       Guild
 	Items       Items
 	Talents     []SpecTalents
 	ArenaRating ArenaRating `json:"pvp"`
@@ -99,7 +105,7 @@ type Client struct {
 	secret string
 }
 
-const battleNetURL = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents,items,pvp&locale=%s&apikey=%s"
+const battleNetURL = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents,guild,items,pvp&locale=%s&apikey=%s"
 
 // New creates a new Battle.Net client
 func New(secret string) *Client {
